@@ -1,0 +1,108 @@
+---
+title: "Resultats analyse auto"
+author: "Wissem-Ben Romdhane"
+date: "2022-07-28"
+output: 
+  pdf_document:
+    toc: yes
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{xcolor}
+---
+
+```{r include=FALSE}
+library(kableExtra)
+#source("Src/Analyser.R", local = knitr::knit_global())
+
+#local=True permet de specifier que l'environnement de travail correspond a celui du fichier source (variables du fichier consideré)
+#sys.source("Src/Analyser.R", envir = knitr::knit_global())
+```
+
+# Mouse behavioural test analysis results
+
+## Caracteristiques du fichier source
+
+### Caracteristiques du fichier
+
+-   Date d'analyse: `r format(Sys.time(), '%d %B %Y %H:%M')`
+
+-   Fichier analysé: `r basename(fichier)`
+
+### Caracteristiques experience
+
+-   Experiment file name: `r unique(Dataframe_raw$Exp..File.Name)`
+
+-   Experimentateur: `r unique(Dataframe_raw$Experimenter)`
+
+-   Protocole renseigné: `r unique(Dataframe_raw$Exp..Protocol.Name)`
+
+-   Protocole detecté: `r Exps_mastertable[Exp_pos,1]`
+
+\newpage
+
+## Tableaux des caracteristiques des groupes étudiés
+
+```{r toto, echo=FALSE}
+#two dataframes in one kable
+df1=table_cara_animals_global
+df2=table_cara_animals_precis
+kable(
+  list(df1,df2),
+  booktabs=T,
+  digits=2,
+  caption="kable Caracteristiques des groupes étudiés",
+  align="c"
+) %>% 
+  kable_styling(latex_options = c("striped","HOLD_position","repeat_header"),
+                repeat_header_text = "(Suite)")
+
+```
+\newpage
+
+## Graphiques et tables statistiques associées
+
+```{r mylabel, echo=FALSE,warning=FALSE, results='asis' }
+for (i in liste_graphs){
+  #Besoin de "results= asis" et print() pour afficher les kable dans une for loop, cf Rmarkdown cookbook 10.1
+  #asis permet d'utiliser due LATex dans le code chunk
+  print(get(i)) #Selectionne le graph i dans la liste des graphs et l'affiche
+  
+  tag=paste("Df.",i,sep="") #definit un tag selon i
+  liste_des_tables_degraphi=list.tables.comment(liste_tables,tag) #retourne une liste des tables associée au Graphi (via tag)
+  
+  pos=grep("_stats",liste_des_tables_degraphi,ignore.case=TRUE) # retourne la position de la table stat dans la liste des tables du graph i retournée
+  table_stats_selection=liste_des_tables_degraphi[pos] #creation d'une liste des tables stats associées au Graphi (via tag)
+  
+#gsub('[.]', '\n', colnames(get(w))) #remplace tous les "." par des "\n"
+#linebreak(gsub('[.]', '\n', colnames(get(w)))) #genere des retour a la ligne a chaque "\n", (necessite escape=F pour bon affichage)
+  cat('\n')
+  for (w in table_stats_selection){
+    f=knitr::kable(get(w),#Recupere la table stat dans la liste des tables du graph i
+                   booktabs=T,longtable=T,escape=F,
+                   align = "c", digits=2,
+                   col.names=linebreak(c(gsub('[.]', '\n', colnames(get(w)))),align="c"),
+                   label=match(i,table_stats_selection)+(match(w,table_stats_selection)/100),
+                   caption=knitr:::escape_latex(paste(i,"-", w, sep=" "))) %>% #Il y a un conflit entre le nom de la table (contient des underscore), et la reconaissance du texte avec le language latex, la fonction knitr:::escape_latex permet de resoudre la gestion de caracteres reservés a latex contenu dans du texte
+      kable_styling(latex_options = c("striped","HOLD_position","repeat_header"),
+                    repeat_header_text = "(suite)",
+                    position="center",
+                    font_size = 7)
+    print(f)
+  }
+  
+  cat('\\pagebreak') #concatene et print une ligne de code ici en Latex afin de creer un saut de page
+}
+```
+
